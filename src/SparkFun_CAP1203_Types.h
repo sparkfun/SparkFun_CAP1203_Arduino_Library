@@ -182,12 +182,12 @@ public:
   void setInterruptEnabled();
   bool isInterruptEnabled();
 
-  bool checkStatus();
   void checkMainControl();
+  void checkStatus();
 
   // Power button configuration and check settings
   bool setPowerButtonPad(uint8_t pad);
-  bool setPowerButtonTime(uint16_t time);
+  bool setPowerButtonTime(uint8_t time);
   uint8_t getPowerButtonPad();
   uint16_t getPowerButtonTime();
   void setPowerButtonEnabled();

@@ -44,7 +44,6 @@ bool CAP1203::begin(TwoWire &wirePort, uint8_t deviceAddress)
 
     if (isConnected() == false)
     {
-        Serial.println("NO ACK");
         return false;
     }
     // Read PROD_ID register
@@ -56,19 +55,31 @@ bool CAP1203::begin(TwoWire &wirePort, uint8_t deviceAddress)
         return false;
     }
 
-    setSensitivity(2);      // Set sensitivity to 2x on startup - value calibrated for SparkFun CAP1203 Cap Touch Slider Board
-    setInterruptDisabled(); // Disable INT and LED as default
-    clearInterrupt();       // Clear interrupt on startup
+    setSensitivity(SENSITIVITY_2X); // Set sensitivity to 2x on startup - value calibrated for SparkFun CAP1203 Cap Touch Slider Board
+    setInterruptEnabled();          // Enable INT and LED as default
+    clearInterrupt();               // Clear interrupt on startup
     return true;
 }
 
-//Returns true if I2C device ack's
+/* IS CONNECTED 
+    Returns true if the I2C Device acknowledgs a connection.
+    Otherwise returns false.
+*/
 bool CAP1203::isConnected()
 {
-    _i2cPort->beginTransmission((uint8_t)_deviceAddress);
-    if (_i2cPort->endTransmission() != 0)
-        return (false); //Sensor did not ACK
-    return (true);
+    for (byte i = 0; i < 5; i++)
+    {
+        /* After inspecting with logic analyzer, the device fails
+            to connect for unknown reasons. The device typically connects
+            after two calls. We included a for loop to allow for 
+            multiple calls to the device.
+        */
+        _i2cPort->beginTransmission((uint8_t)_deviceAddress);
+        if (_i2cPort->endTransmission() == 0)
+            return (true); //Sensor did not ACK
+    }
+
+    return (false);
 }
 
 /* CHECK MAIN CONTROL REGISTER
@@ -85,28 +96,10 @@ void CAP1203::checkMainControl()
     Checks inputs in the general status register to ensure program
     is set up correctly. See data sheet on Status Registers (pg. 23).
 */
-bool CAP1203::checkStatus()
+void CAP1203::checkStatus()
 {
     GENERAL_STATUS_REG reg;
     reg.GENERAL_STATUS_COMBINED = readRegister(GENERAL_STATUS);
-
-    Serial.print("BC_OUT ");
-    Serial.println(reg.GENERAL_STATUS_FIELDS.BC_OUT);
-
-    Serial.print("ACAL_FAIL ");
-    Serial.println(reg.GENERAL_STATUS_FIELDS.ACAL_FAIL);
-
-    Serial.print("PWR ");
-    Serial.println(reg.GENERAL_STATUS_FIELDS.PWR);
-
-    Serial.print("MULT ");
-    Serial.println(reg.GENERAL_STATUS_FIELDS.MULT);
-
-    Serial.print("MTP ");
-    Serial.println(reg.GENERAL_STATUS_FIELDS.MTP);
-
-    Serial.print("TOUCH ");
-    Serial.println(reg.GENERAL_STATUS_FIELDS.TOUCH);
 }
 
 /* CLEAR INTTERUPT 
@@ -154,7 +147,8 @@ void CAP1203::setInterruptEnabled()
 /* IS INTERRUPT ENABLED
     Returns state of intterupt pin. Returns true if all interrupts enabled 
     (0x07), otherwise returns false. When the interrupts are enabled, the 
-    LED on the CAP1203 Touch Slider Board turns on. (pg. 33)
+    LED on the CAP1203 Touch Slider Board turns on when it detects a touch 
+    (pg. 33).
 */
 bool CAP1203::isInterruptEnabled()
 {
@@ -176,31 +170,31 @@ void CAP1203::setSensitivity(uint8_t sensitivity)
 {
     SENSITIVITY_CONTROL_REG reg;
     reg.SENSITIVITY_CONTROL_COMBINED = readRegister(SENSITIVITY_CONTROL);
-    if (sensitivity == 128)
+    if (sensitivity == SENSITIVITY_128X)
     {
         reg.SENSITIVITY_CONTROL_FIELDS.DELTA_SENSE = SENSITIVITY_128X;
     }
-    else if (sensitivity == 64)
+    else if (sensitivity == SENSITIVITY_64X)
     {
         reg.SENSITIVITY_CONTROL_FIELDS.DELTA_SENSE = SENSITIVITY_64X;
     }
-    else if (sensitivity == 32)
+    else if (sensitivity == SENSITIVITY_32X)
     {
         reg.SENSITIVITY_CONTROL_FIELDS.DELTA_SENSE = SENSITIVITY_32X;
     }
-    else if (sensitivity == 16)
+    else if (sensitivity == SENSITIVITY_16X)
     {
         reg.SENSITIVITY_CONTROL_FIELDS.DELTA_SENSE = SENSITIVITY_16X;
     }
-    else if (sensitivity == 8)
+    else if (sensitivity == SENSITIVITY_8X)
     {
         reg.SENSITIVITY_CONTROL_FIELDS.DELTA_SENSE = SENSITIVITY_8X;
     }
-    else if (sensitivity == 4)
+    else if (sensitivity == SENSITIVITY_4X)
     {
         reg.SENSITIVITY_CONTROL_FIELDS.DELTA_SENSE = SENSITIVITY_4X;
     }
-    else if (sensitivity == 1)
+    else if (sensitivity == SENSITIVITY_1X)
     {
         reg.SENSITIVITY_CONTROL_FIELDS.DELTA_SENSE = SENSITIVITY_1X;
     }
@@ -254,7 +248,7 @@ uint8_t CAP1203::getSensitivity()
     }
     else
     {
-        // Error - no possible register value found (pg. 25)
+        // Error - no possible register value (pg. 25)
         return 0;
     }
 }
@@ -378,9 +372,9 @@ bool CAP1203::isRightSwipePulled()
 
     // Return if middle not touched
     if (swipe == false)
+    {
         return false;
-
-    // Serial.println(" M3 ");
+    }
 
     startTime = millis(); // Reset start time
     swipe = false;        // Reset check statement
@@ -442,8 +436,6 @@ bool CAP1203::isLeftSwipePulled()
     if (swipe == false)
         return false;
 
-    // Serial.println(" M3 ");
-
     startTime = millis(); // Reset start time
     swipe = false;        // Reset check statement
 
@@ -469,15 +461,15 @@ bool CAP1203::setPowerButtonPad(uint8_t pad)
     reg.POWER_BUTTON_COMBINED = readRegister(POWER_BUTTON);
 
     // Set pad to act as power button (pg. 43)
-    if (pad == 1)
+    if (pad == PAD_LEFT)
     {
         reg.POWER_BUTTON_FIELDS.PWR_BTN = PWR_CS1;
     }
-    else if (pad == 2)
+    else if (pad == PAD_MIDDLE)
     {
         reg.POWER_BUTTON_FIELDS.PWR_BTN = PWR_CS2;
     }
-    else if (pad == 3)
+    else if (pad == PAD_RIGHT)
     {
         reg.POWER_BUTTON_FIELDS.PWR_BTN = PWR_CS3;
     }
@@ -517,23 +509,23 @@ uint8_t CAP1203::getPowerButtonPad()
     
     Possible inputs (represent time in ms): 280, 560, 1120, 2240
 */
-bool CAP1203::setPowerButtonTime(uint16_t inputTime)
+bool CAP1203::setPowerButtonTime(uint8_t inputTime)
 {
     POWER_BUTTON_CONFIG_REG reg;
     reg.POWER_BUTTON_CONFIG_COMBINED = readRegister(POWER_BUTTON_CONFIG);
-    if (inputTime == 280)
+    if (inputTime == PWR_TIME_280_MS)
     {
         reg.POWER_BUTTON_CONFIG_FIELDS.PWR_TIME = PWR_TIME_280_MS;
     }
-    else if (inputTime == 560)
+    else if (inputTime == PWR_TIME_560_MS)
     {
         reg.POWER_BUTTON_CONFIG_FIELDS.PWR_TIME = PWR_TIME_560_MS;
     }
-    else if (inputTime == 1120)
+    else if (inputTime == PWR_TIME_1120_MS)
     {
         reg.POWER_BUTTON_CONFIG_FIELDS.PWR_TIME = PWR_TIME_1120_MS;
     }
-    else if (inputTime == 2240)
+    else if (inputTime == PWR_TIME_2240_MS)
     {
         reg.POWER_BUTTON_CONFIG_FIELDS.PWR_TIME = PWR_TIME_2240_MS;
     }
