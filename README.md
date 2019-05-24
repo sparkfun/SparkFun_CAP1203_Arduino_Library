@@ -11,7 +11,7 @@ Repository Contents
 Documentation
 --------------
 * **[Product Repository](https://github.com/sparkfun/Qwiic_Capacitive_Touch_Slider_CAP1203)** - Product repository for the SparkFun Capacitive Touch Slider.
-* **[Hookup Guide](https://learn.sparkfun.com/tutorials/sparkfun-capacitive-touch-slider-guide)** - Basic hookup guide for the SparkFun Capacitive Touch Slider.
+* **[Hookup Guide](https://learn.sparkfun.com/tutorials/capacitive-touch-slider-hookup-guide)** - Basic hookup guide for the SparkFun Capacitive Touch Slider.
 
 Product Versions
 ----------------
