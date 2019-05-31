@@ -1,7 +1,11 @@
 SparkFun Capacitive Touch Slider - CAP1203 (Qwiic)
 ========================================
 
-An I2C based capacitive touch slider with 3 unique touch inputs.
+![SparkFun Capacitive Touch Slider Board](https://cdn.sparkfun.com/assets/parts/1/3/8/7/1/15344-SparkFun_Capacitive_Touch_Slider_-_CAP1203__Qwiic_-01a.jpg)
+
+[*SparkFun Capacitive Touch Slider - CAP1203 (Qwiic) (SEN-15344)*](https://www.sparkfun.com/products/15344)
+
+Arduino library for the I2C based capacitive touch slider with 3 unique touch inputs. 
 
 Repository Contents
 ------------------- 
