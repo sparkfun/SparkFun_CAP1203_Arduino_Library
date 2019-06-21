@@ -18,39 +18,49 @@
   Distributed as is; no warrenty given.
 */
 
-#include <SparkFun_CAP1203_Registers.h>
-#include <SparkFun_CAP1203_Types.h>
 #include <Wire.h>
+#include "SparkFun_CAP1203.h" // Click here to get the library: http://librarymanager/All#SparkFun_CAP1203
 
-CAP1203 sensor;     // Initialize sensor
+CAP1203 sensor; // Initialize sensor
 
-void setup() {
-  Wire.begin();         // Join I2C bus
-  Serial.begin(9600);   // Start serial for output
+void setup()
+{
+  Wire.begin();       // Join I2C bus
+  Serial.begin(9600); // Start serial for output
 
   // Setup sensor
-  if (sensor.begin() == false) {
+  if (sensor.begin() == false)
+  {
     Serial.println("Not connected. Please check connections and read the hookup guide.");
-    while (1);
+    while (1)
+      ;
   }
-  else {
+  else
+  {
     Serial.println("Connected!");
   }
 }
 
-void loop() {
-  if (sensor.isLeftTouched() == true) {
+void loop()
+{
+  if (sensor.isLeftTouched() == true)
+  {
     Serial.println("Left");
-    while (sensor.isLeftTouched() == true);   // Wait until user removes finger
+    while (sensor.isLeftTouched() == true)
+      ; // Wait until user removes finger
   }
 
-  if (sensor.isMiddleTouched() == true) {
+  if (sensor.isMiddleTouched() == true)
+  {
     Serial.println("Middle");
-    while (sensor.isMiddleTouched() == true); // Wait until user removes finger
+    while (sensor.isMiddleTouched() == true)
+      ; // Wait until user removes finger
   }
 
-  if (sensor.isRightTouched() == true) {
+  if (sensor.isRightTouched() == true)
+  {
     Serial.println("Right");
-    while (sensor.isRightTouched() == true); // Wait until user removes finger
+    while (sensor.isRightTouched() == true)
+      ; // Wait until user removes finger
   }
 }

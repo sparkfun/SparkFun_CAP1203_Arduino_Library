@@ -21,22 +21,25 @@
   Distributed as is; no warrenty given.
 */
 
-#include <SparkFun_CAP1203_Registers.h>
-#include <SparkFun_CAP1203_Types.h>
 #include <Wire.h>
+#include "SparkFun_CAP1203.h" // Click here to get the library: http://librarymanager/All#SparkFun_CAP1203
 
-CAP1203 sensor;     // Initialize sensor
+CAP1203 sensor; // Initialize sensor
 
-void setup() {
-  Wire.begin();         // Join I2C bus
-  Serial.begin(9600);   // Start serial for output
+void setup()
+{
+  Wire.begin();       // Join I2C bus
+  Serial.begin(9600); // Start serial for output
 
   // Setup sensor
-  if (sensor.begin() == false) {
+  if (sensor.begin() == false)
+  {
     Serial.println("Not connected. Please check connections and read the hookup guide.");
-    while (1);
+    while (1)
+      ;
   }
-  else {
+  else
+  {
     Serial.println("Connected!");
   }
 
@@ -59,13 +62,16 @@ void setup() {
   */
   int pad = sensor.getPowerButtonPad();
   Serial.print("Power Button Pad: ");
-  if (pad == 1) {
+  if (pad == 1)
+  {
     Serial.println("Left");
   }
-  else if (pad == 2) {
+  else if (pad == 2)
+  {
     Serial.println("Middle");
   }
-  if (pad == 3) {
+  if (pad == 3)
+  {
     Serial.println("Right");
   }
 
@@ -77,7 +83,7 @@ void setup() {
   //sensor.setPowerButtonTime(PWR_TIME_280_MS);    // 280 ms
   //sensor.setPowerButtonTime(PWR_TIME_560_MS);    // 560 ms
   //sensor.setPowerButtonTime(PWR_TIME_1120_MS);   // 1120 ms
-  sensor.setPowerButtonTime(PWR_TIME_2240_MS);     // 2240 ms
+  sensor.setPowerButtonTime(PWR_TIME_2240_MS); // 2240 ms
 
   /* GET POWER BUTTON TIME
       Get the length of time the designated power button
@@ -95,7 +101,7 @@ void setup() {
       button. When the power button is DISABLED, all pads
       act as regular capactitive touch sensors.
   */
-  sensor.setPowerButtonEnabled();     // Enable power button
+  sensor.setPowerButtonEnabled(); // Enable power button
   //sensor.setPowerButtonDisabled();  // Disable power button
 
   /* IS POWER BUTTON TOUCHED
@@ -103,17 +109,22 @@ void setup() {
       if ENABLED, otherwise returns false.
   */
   Serial.print("Power Button: ");
-  if (sensor.isPowerButtonEnabled() == true) {
+  if (sensor.isPowerButtonEnabled() == true)
+  {
     Serial.println("ENABLED");
   }
-  else {
+  else
+  {
     Serial.println("DISABLED");
   }
 }
 
-void loop() {
-  if (sensor.isPowerButtonTouched() == true) {
+void loop()
+{
+  if (sensor.isPowerButtonTouched() == true)
+  {
     Serial.println("Power Button");
-    while (sensor.isPowerButtonTouched() == true);   // Wait until user removes finger
+    while (sensor.isPowerButtonTouched() == true)
+      ; // Wait until user removes finger
   }
 }
