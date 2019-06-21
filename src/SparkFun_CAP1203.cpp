@@ -21,7 +21,7 @@ Distributed as-is; no warranty is given.
 #include <Arduino.h>
 #include <Wire.h>
 #include "SparkFun_CAP1203_Registers.h"
-#include "SparkFun_CAP1203_Types.h"
+#include "SparkFun_CAP1203.h"
 
 /* CONSTRUCTOR
     This function, called when you initialize the class will write 
