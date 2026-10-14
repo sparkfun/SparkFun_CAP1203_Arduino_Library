@@ -8,7 +8,7 @@
   This sketch uses the SparkFun_CAP1203 library to initialize
   the capacitive touch sensor and set the sensitivity for
   different applications. The default sensitivity is set to
-  2x for the CAP1203 Touch Slider.
+  16x for the CAP1203 Touch Slider.
 
   License: This code is public domain, but if you see me
   (or any other SparkFun employee) at the local, and you've
@@ -43,7 +43,7 @@ void setup()
   /* SET SENSITIVITY
       Set the sensitivity multiplier for different applications,
       such as different sized touch pads. The default sensitivity 
-      multiplier is set to 2x.
+      multiplier is set to 16x.
 
       Different sensitivity settings:
       SENSITIVITY_128X  // Most sensitive

@@ -61,7 +61,16 @@ Distributed as-is; no warranty is given.
 #define SENSITIVITY_4X 0x05
 #define SENSITIVITY_2X 0x06
 #define SENSITIVITY_1X 0x07 // Least sensitive
-
+typedef union {
+  struct
+  {
+    uint8_t CS1_CAL : 1;
+    uint8_t CS2_CAL : 1;
+    uint8_t CS3_CAL : 1;
+    uint8_t EMPTY_1 : 5;
+  } CALIBRATION_ACTIVATE_AND_STATUS_FIELDS;
+  uint8_t CALIBRATION_ACTIVATE_AND_STATUS_COMBINED;
+} CALIBRATION_ACTIVATE_AND_STATUS_REG;
 // Sensitivity Control Reg (pg. 25)
 typedef union {
   struct
@@ -88,6 +97,20 @@ typedef union {
   } GENERAL_STATUS_FIELDS;
   uint8_t GENERAL_STATUS_COMBINED;
 } GENERAL_STATUS_REG;
+// Multiple Touch Pattern Configuration (pg. 34)
+typedef union {
+  struct
+  {
+    uint8_t Bit_0 : 1;
+    uint8_t Bit_1 : 1;
+    uint8_t B_MULT : 2; // B_MULT_T: number of simultaneous touches allowed
+    uint8_t Bit_4 : 1;
+    uint8_t Bit_5 : 1;
+    uint8_t Bit_6 : 1;
+    uint8_t Multi_EN : 1;
+  } MULTITOUCH_STATUS_FIELDS;
+  uint8_t MULTITOUCH_STATUS_COMBINED;
+} MULTITOUCH_STATUS_REG;
 
 // Sensor Input Status Reg (pg. 23)
 typedef union {
@@ -100,6 +123,17 @@ typedef union {
   } SENSOR_INPUT_STATUS_FIELDS;
   uint8_t SENSOR_INPUT_STATUS_COMBINED;
 } SENSOR_INPUT_STATUS_REG;
+// Sensor Input multitouch  Status Reg (pg. 35)
+typedef union {
+  struct
+  {
+    uint8_t CS1 : 1;
+    uint8_t CS2 : 1;
+    uint8_t CS3 : 1;
+    uint8_t EMPTY_1 : 5;
+  } MULTIPLE_INPUT_STATUS_FIELDS;
+  uint8_t MULTIPLE_INPUT_STATUS_COMBINED;
+} MULTIPLE_INPUT_STATUS_REG;
 
 // Main Control Register (pg. 22)
 typedef union {
@@ -166,8 +200,11 @@ public:
 
   // Check if a capacitive touch panel has been touched
   bool isLeftTouched();
+  bool isLeftTouched_multi();
   bool isMiddleTouched();
+  bool isMiddleTouched_multi();
   bool isRightTouched();
+  bool isRightTouched_multi();
   bool isTouched();
 
   // Check if a swipe has occured
@@ -194,6 +231,34 @@ public:
   void setPowerButtonDisabled();
   bool isPowerButtonEnabled();
   bool isPowerButtonTouched();
+  uint8_t getMultiTouch();
+  uint8_t setMultiTouch(uint8_t MultiTouch);
+  uint8_t WhichIsTouched(); // Raw status of all 3 pads (bit 0 = left)
+
+  uint8_t getThreshold(uint8_t pad);
+  void setThreshold(uint8_t pad, uint8_t threshold);
+  int8_t getDeltaCount(uint8_t pad);
+  bool getRepeatRateEnabled(uint8_t pad);
+  void setRepeatRateEnabled(uint8_t pad, bool state);
+  bool getDIS_ANA_NOISE();
+  void setDIS_ANA_NOISE(bool state);
+  void setDIS_RF_NOISE(bool state);
+  bool getDIS_RF_NOISE();
+  void setAutomaticRecalibNumberOfSamples(uint16_t num_samples, uint16_t update_time);
+  void getAutomaticRecalibNumberOfSamples(uint16_t &num_samples, uint16_t &update_time);
+  void setNegativeDeltaCounts(uint8_t counts);
+  uint8_t getNegativeDeltaCounts();
+  void setAveragingCycleTime(uint8_t cycle_time_ms);
+  uint8_t getAveragingCycleTime();
+  void setAveragingSamplingTime(uint16_t samp_time_us);
+  uint16_t getAveragingSamplingTime();
+  void setAveragingNumberOfSamples(uint8_t num_samples);
+  uint8_t getAveragingNumberOfSamples();
+  void setForceCalibrateDisabled();
+  void setForceCalibrateEnabled();
+  uint8_t getCalibrationRegister(const uint8_t touch);
+  uint8_t getCountRegister(const uint8_t touch);
+  uint8_t getForceCalibrateEnabledState();
 
 private:
   TwoWire *_i2cPort = NULL; //The generic connection to user's chosen I2C hardware

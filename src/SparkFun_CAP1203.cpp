@@ -55,8 +55,8 @@ bool CAP1203::begin(TwoWire &wirePort, uint8_t deviceAddress)
         return false;
     }
 
-    setSensitivity(SENSITIVITY_2X); // Set sensitivity to 2x on startup - value calibrated for SparkFun CAP1203 Cap Touch Slider Board
-    setInterruptEnabled();          // Enable INT and LED as default
+    setSensitivity(SENSITIVITY_16X); // Set sensitivity to 16x on startup
+    // setInterruptEnabled();          // Enable INT and LED as default
     clearInterrupt();               // Clear interrupt on startup
     return true;
 }
@@ -253,6 +253,98 @@ uint8_t CAP1203::getSensitivity()
     }
 }
 
+/* GET MULTIPLE TOUCH CONFIGURATION
+    Returns the raw Multiple Touch Configuration register (0x2A). Bits 3:2
+    (B_MULT_T) hold the number of simultaneous touches allowed, bit 7
+    (MULT_BLK_EN) enables multiple touch blocking.
+*/
+uint8_t CAP1203::getMultiTouch()
+{
+    MULTITOUCH_STATUS_REG reg;
+    reg.MULTITOUCH_STATUS_COMBINED = readRegister(MULTIPLE_TOUCH_CONFIG);
+    return reg.MULTITOUCH_STATUS_COMBINED;
+}
+
+/* GET BASE COUNT
+    Returns the Base Count register (0x50-0x52) of a sensor input
+    (1 = left, 2 = middle, 3 = right). Returns 0 for an invalid input.
+*/
+uint8_t CAP1203::getCountRegister(const uint8_t touch)
+{
+    uint8_t reg = 0x00;
+    if (touch == 1)
+    {
+        reg = readRegister(SENSOR_INPUT_1_BASE_COUNT);
+    }
+    else if (touch == 2)
+    {
+        reg = readRegister(SENSOR_INPUT_2_BASE_COUNT);
+    }
+    else if (touch == 3)
+    {
+        reg = readRegister(SENSOR_INPUT_3_BASE_COUNT);
+    }
+    else
+    {
+        reg = 0x00;
+    }
+
+    return reg;
+}
+
+/* GET CALIBRATION
+    Returns the Sensor Input Calibration register (0xB1-0xB3) of a sensor
+    input (1 = left, 2 = middle, 3 = right). Returns 0 for an invalid input.
+*/
+uint8_t CAP1203::getCalibrationRegister(const uint8_t touch)
+{
+    uint8_t reg = 0x00;
+    if (touch == 1)
+    {
+        reg = readRegister(SENSOR_INPUT_1_CALIBRATION);
+    }
+    else if (touch == 2)
+    {
+        reg = readRegister(SENSOR_INPUT_2_CALIBRATION);
+    }
+    else if (touch == 3)
+    {
+        reg = readRegister(SENSOR_INPUT_3_CALIBRATION);
+    }
+    else
+    {
+        reg = 0x00;
+    }
+
+    return reg;
+}
+
+/* SET MULTIPLE TOUCH
+    Sets how many simultaneous touches (1, 2 or 3) are allowed before a
+    multiple touch event is flagged. Writes B_MULT_T in the Multiple Touch
+    Configuration register (0x2A) and returns the new register value.
+    Other inputs leave the setting unchanged.
+*/
+uint8_t CAP1203::setMultiTouch(uint8_t MultiTouch)
+{
+    MULTITOUCH_STATUS_REG reg;
+    reg.MULTITOUCH_STATUS_COMBINED = readRegister(MULTIPLE_TOUCH_CONFIG);
+    if (MultiTouch == 1)
+    {
+        reg.MULTITOUCH_STATUS_FIELDS.B_MULT = 0x00;
+    }
+    else if (MultiTouch == 2)
+    {
+        reg.MULTITOUCH_STATUS_FIELDS.B_MULT = 0x01;
+    }
+    else if (MultiTouch == 3)
+    {
+        reg.MULTITOUCH_STATUS_FIELDS.B_MULT = 0x03;
+    }
+
+    writeRegister(MULTIPLE_TOUCH_CONFIG, reg.MULTITOUCH_STATUS_COMBINED);
+    return reg.MULTITOUCH_STATUS_COMBINED;
+}
 /* LEFT SENSOR TOUCHED
     Checks if touch input detected on left sensor (pad 1). Need to clear
     interrupt pin after touch occurs. See datasheet on Sensor Interrupt 
@@ -261,10 +353,31 @@ uint8_t CAP1203::getSensitivity()
 bool CAP1203::isLeftTouched()
 {
     SENSOR_INPUT_STATUS_REG reg;
+
     reg.SENSOR_INPUT_STATUS_COMBINED = readRegister(SENSOR_INPUT_STATUS);
 
     // Touch detected
     if (reg.SENSOR_INPUT_STATUS_FIELDS.CS1 == ON)
+    {
+        clearInterrupt();
+
+        return true;
+    }
+
+    return false;
+}
+
+/* LEFT SENSOR, MULTIPLE TOUCH PATTERN
+    Checks the left sensor (CS1) bit of the Multiple Touch Pattern
+    register (0x2D). Clears the interrupt when the bit is set.
+*/
+bool CAP1203::isLeftTouched_multi()
+{
+    MULTIPLE_INPUT_STATUS_REG reg;
+    reg.MULTIPLE_INPUT_STATUS_COMBINED = readRegister(MULTIPLE_TOUCH_PATTERN);
+
+    // Touch detected
+    if (reg.MULTIPLE_INPUT_STATUS_FIELDS.CS1 == ON)
     {
         clearInterrupt();
         return true;
@@ -291,6 +404,24 @@ bool CAP1203::isMiddleTouched()
     return false;
 }
 
+/* MIDDLE SENSOR, MULTIPLE TOUCH PATTERN
+    Checks the middle sensor (CS2) bit of the Multiple Touch Pattern
+    register (0x2D). Clears the interrupt when the bit is set.
+*/
+bool CAP1203::isMiddleTouched_multi()
+{
+    MULTIPLE_INPUT_STATUS_REG reg;
+    reg.MULTIPLE_INPUT_STATUS_COMBINED = readRegister(MULTIPLE_TOUCH_PATTERN);
+
+    // Touch detected
+    if (reg.MULTIPLE_INPUT_STATUS_FIELDS.CS2 == ON)
+    {
+        clearInterrupt();
+        return true;
+    }
+    return false;
+}
+
 /* RIGHT SENSOR TOUCHED
     Checks if touch input detected on left sensor (pad 3). Need to clear
     interrupt pin after touch occurs. See datasheet on Sensor Interrupt 
@@ -299,10 +430,31 @@ bool CAP1203::isMiddleTouched()
 bool CAP1203::isRightTouched()
 {
     SENSOR_INPUT_STATUS_REG reg;
+
     reg.SENSOR_INPUT_STATUS_COMBINED = readRegister(SENSOR_INPUT_STATUS);
 
     // Touch detected
     if (reg.SENSOR_INPUT_STATUS_FIELDS.CS3 == ON)
+    {
+        clearInterrupt();
+
+        return true;
+    }
+
+    return false;
+}
+
+/* RIGHT SENSOR, MULTIPLE TOUCH PATTERN
+    Checks the right sensor (CS3) bit of the Multiple Touch Pattern
+    register (0x2D). Clears the interrupt when the bit is set.
+*/
+bool CAP1203::isRightTouched_multi()
+{
+    MULTIPLE_INPUT_STATUS_REG reg;
+    reg.MULTIPLE_INPUT_STATUS_COMBINED = readRegister(MULTIPLE_TOUCH_PATTERN);
+
+    // Touch detected
+    if (reg.MULTIPLE_INPUT_STATUS_FIELDS.CS3 == ON)
     {
         clearInterrupt();
         return true;
@@ -327,6 +479,21 @@ bool CAP1203::isTouched()
         return true;
     }
     return false;
+}
+
+/* WHICH SENSOR IS TOUCHED
+    Returns the raw Sensor Input Status register (0x03) so all pads can be
+    checked with one read: bit 0 = left, bit 1 = middle, bit 2 = right.
+    Clears the interrupt.
+*/
+uint8_t CAP1203::WhichIsTouched()
+{
+    SENSOR_INPUT_STATUS_REG reg;
+    reg.SENSOR_INPUT_STATUS_COMBINED = readRegister(SENSOR_INPUT_STATUS);
+
+    // Touch detected
+    clearInterrupt();
+    return reg.SENSOR_INPUT_STATUS_COMBINED;
 }
 
 /* IS RIGHT SWIPE
@@ -694,4 +861,600 @@ void CAP1203::writeRegisters(CAP1203_Register reg, byte *buffer, byte len)
     for (int i = 0; i < len; i++)
         _i2cPort->write(buffer[i]);
     _i2cPort->endTransmission(); // Stop transmitting
+}
+
+/* GET TOUCH THRESHOLD
+    Returns the Sensor Input Threshold register (0x30-0x32) of a pad
+    (PAD_LEFT, PAD_MIDDLE, PAD_RIGHT). A touch is detected when the delta
+    count exceeds this value. Returns 0 for an invalid pad.
+*/
+uint8_t CAP1203::getThreshold(uint8_t pad)
+{
+    uint8_t rb;
+    if (pad == PAD_LEFT)
+    {
+        rb = readRegister(SENSOR_1_INPUT_THRESH);
+    }
+    else if (pad == PAD_MIDDLE)
+    {
+        rb = readRegister(SENSOR_2_INPUT_THRESH);
+    }
+    else if (pad == PAD_RIGHT)
+    {
+        rb = readRegister(SENSOR_3_INPUT_THRESH);
+    }
+    else
+    {
+        // User input invalid pad number
+        return 0x00;
+    }
+
+    return rb;
+}
+
+/* SET TOUCH THRESHOLD
+    Writes the Sensor Input Threshold register (0x30-0x32) of a pad
+    (PAD_LEFT, PAD_MIDDLE, PAD_RIGHT).
+*/
+void CAP1203::setThreshold(uint8_t pad, uint8_t threshold)
+{
+    if (pad == PAD_LEFT)
+    {
+        writeRegister(SENSOR_1_INPUT_THRESH, threshold);
+    }
+    else if (pad == PAD_MIDDLE)
+    {
+        writeRegister(SENSOR_2_INPUT_THRESH, threshold);
+    }
+    else if (pad == PAD_RIGHT)
+    {
+        writeRegister(SENSOR_3_INPUT_THRESH, threshold);
+    }
+}
+
+/* FORCE CALIBRATION
+    Sets the CS1_CAL, CS2_CAL and CS3_CAL bits of the Calibration Activate
+    and Status register (0x26) to start a calibration of all three inputs.
+    Use getForceCalibrateEnabledState() to read the register back.
+*/
+void CAP1203::setForceCalibrateEnabled()
+{
+    CALIBRATION_ACTIVATE_AND_STATUS_REG reg;
+    reg.CALIBRATION_ACTIVATE_AND_STATUS_COMBINED = readRegister(CALIBRATION_ACTIVATE_AND_STATUS);
+
+    reg.CALIBRATION_ACTIVATE_AND_STATUS_FIELDS.CS1_CAL = 0x01;
+    reg.CALIBRATION_ACTIVATE_AND_STATUS_FIELDS.CS2_CAL = 0x01;
+    reg.CALIBRATION_ACTIVATE_AND_STATUS_FIELDS.CS3_CAL = 0x01;
+
+    writeRegister(CALIBRATION_ACTIVATE_AND_STATUS, reg.CALIBRATION_ACTIVATE_AND_STATUS_COMBINED);
+}
+
+/* GET CALIBRATION STATUS
+    Returns the raw Calibration Activate and Status register (0x26).
+*/
+uint8_t CAP1203::getForceCalibrateEnabledState()
+{
+    CALIBRATION_ACTIVATE_AND_STATUS_REG reg;
+    reg.CALIBRATION_ACTIVATE_AND_STATUS_COMBINED = readRegister(CALIBRATION_ACTIVATE_AND_STATUS);
+
+    return reg.CALIBRATION_ACTIVATE_AND_STATUS_COMBINED;
+}
+
+/* CLEAR FORCED CALIBRATION
+    Clears the CS1_CAL, CS2_CAL and CS3_CAL bits of the Calibration
+    Activate and Status register (0x26).
+*/
+void CAP1203::setForceCalibrateDisabled()
+{
+    CALIBRATION_ACTIVATE_AND_STATUS_REG reg;
+    reg.CALIBRATION_ACTIVATE_AND_STATUS_COMBINED = readRegister(CALIBRATION_ACTIVATE_AND_STATUS);
+
+    reg.CALIBRATION_ACTIVATE_AND_STATUS_FIELDS.CS1_CAL = 0x00;
+    reg.CALIBRATION_ACTIVATE_AND_STATUS_FIELDS.CS2_CAL = 0x00;
+    reg.CALIBRATION_ACTIVATE_AND_STATUS_FIELDS.CS3_CAL = 0x00;
+
+    writeRegister(CALIBRATION_ACTIVATE_AND_STATUS, reg.CALIBRATION_ACTIVATE_AND_STATUS_COMBINED);
+}
+
+/* GET DELTA COUNT
+    Returns the signed Sensor Input Delta Count (0x10-0x12) of a pad
+    (PAD_LEFT, PAD_MIDDLE, PAD_RIGHT): the difference between the current
+    measurement and the base count. Returns 0 for an invalid pad.
+*/
+int8_t CAP1203::getDeltaCount(uint8_t pad)
+{
+    int8_t rb;
+    if (pad == PAD_LEFT)
+    {
+        rb = readRegister(SENSOR_INPUT_1_DELTA_COUNT);
+    }
+    else if (pad == PAD_MIDDLE)
+    {
+        rb = readRegister(SENSOR_INPUT_2_DELTA_COUNT);
+    }
+    else if (pad == PAD_RIGHT)
+    {
+        rb = readRegister(SENSOR_INPUT_3_DELTA_COUNT);
+    }
+    else
+    {
+        // User input invalid pad number
+        return 0x00;
+    }
+    return rb;
+}
+
+/* GET REPEAT RATE ENABLED
+    Returns the Repeat Rate Enable bit (0x28) of a pad (PAD_LEFT,
+    PAD_MIDDLE, PAD_RIGHT). Returns false for an invalid pad.
+*/
+bool CAP1203::getRepeatRateEnabled(uint8_t pad)
+{
+    uint8_t reg_value = readRegister(REPEAT_RATE_ENABLE);
+    bool state = false;
+
+    switch (pad)
+    {
+    case PAD_LEFT:
+        state = (reg_value & 0x01) != 0;
+        break;
+    case PAD_MIDDLE:
+        state = (reg_value & 0x02) != 0;
+        break;
+    case PAD_RIGHT:
+        state = (reg_value & 0x04) != 0;
+        break;
+    default:
+        // Handle invalid pad number
+        break;
+    }
+
+    return state;
+}
+
+/* SET REPEAT RATE ENABLED
+    Sets or clears the Repeat Rate Enable bit (0x28) of a pad. When
+    enabled, a held touch keeps generating interrupts.
+*/
+void CAP1203::setRepeatRateEnabled(uint8_t pad, bool state)
+{
+    uint8_t org = readRegister(REPEAT_RATE_ENABLE);
+
+    if (pad == PAD_LEFT)
+    {
+        if (state)
+        {
+            writeRegister(REPEAT_RATE_ENABLE, (org | 0x01));
+        }
+        else
+        {
+            writeRegister(REPEAT_RATE_ENABLE, (org & 0x06));
+        }
+    }
+    else if (pad == PAD_MIDDLE)
+    {
+        if (state)
+        {
+            writeRegister(REPEAT_RATE_ENABLE, (org | 0x02));
+        }
+        else
+        {
+            writeRegister(REPEAT_RATE_ENABLE, (org & 0x05));
+        }
+    }
+    else if (pad == PAD_RIGHT)
+    {
+        if (state)
+        {
+            writeRegister(REPEAT_RATE_ENABLE, (org | 0x04));
+        }
+        else
+        {
+            writeRegister(REPEAT_RATE_ENABLE, (org & 0x03));
+        }
+    }
+}
+
+/* ANALOG NOISE FILTER
+    Returns DIS_ANA_NOISE (bit 4) of the Configuration register (0x20).
+    true means the analog noise filter is disabled.
+*/
+bool CAP1203::getDIS_ANA_NOISE()
+{
+    uint8_t reg_value = readRegister(CONFIG);
+    return (reg_value & 0x10) != 0;
+}
+
+/* ANALOG NOISE FILTER
+    Sets DIS_ANA_NOISE (bit 4) of the Configuration register (0x20).
+    true disables the analog noise filter.
+*/
+void CAP1203::setDIS_ANA_NOISE(bool state)
+{
+    uint8_t org = readRegister(CONFIG);
+    if (state)
+    {
+        writeRegister(CONFIG, (org | 0x10));
+    }
+    else
+    {
+        writeRegister(CONFIG, (org & 0xEF));
+    }
+}
+
+/* RF NOISE FILTER
+    Sets DIS_RF_NOISE (bit 2) of the Configuration 2 register (0x44).
+    true disables RF noise detection.
+*/
+void CAP1203::setDIS_RF_NOISE(bool state)
+{
+    uint8_t org = readRegister(CONFIG_2);
+    if (state)
+    {
+        writeRegister(CONFIG_2, (org | 0x04));
+    }
+    else
+    {
+        writeRegister(CONFIG_2, (org & 0xFB));
+    }
+}
+
+/* RF NOISE FILTER
+    Returns DIS_RF_NOISE (bit 2) of the Configuration 2 register (0x44).
+*/
+bool CAP1203::getDIS_RF_NOISE()
+{
+    uint8_t reg_value = readRegister(CONFIG_2);
+    return (reg_value & 0x04) != 0;
+}
+
+/* AUTOMATIC RECALIBRATION
+    Sets CAL_CFG (bits 2:0) of the Recalibration Configuration register
+    (0x2F): samples averaged and update time of automatic recalibration.
+    Valid pairs: (16,16), (32,32), (64,64), (128,128), (256,256),
+    (256,1024), (256,2048), (256,4096). Other pairs set (64,64).
+*/
+void CAP1203::setAutomaticRecalibNumberOfSamples(uint16_t num_samples, uint16_t update_time)
+{
+    uint8_t org = readRegister(RECALIBRATION_CONFIG);
+    uint8_t value;
+    if ((num_samples == 16) && (update_time == 16))
+    {
+        value = 0x00;
+    }
+    else if ((num_samples == 32) && (update_time == 32))
+    {
+        value = 0x01;
+    }
+    else if ((num_samples == 64) && (update_time == 64))
+    {
+        value = 0x02;
+    }
+    else if ((num_samples == 128) && (update_time == 128))
+    {
+        value = 0x03;
+    }
+    else if ((num_samples == 256) && (update_time == 256))
+    {
+        value = 0x04;
+    }
+    else if ((num_samples == 256) && (update_time == 1024))
+    {
+        value = 0x05;
+    }
+    else if ((num_samples == 256) && (update_time == 2048))
+    {
+        value = 0x06;
+    }
+    else if ((num_samples == 256) && (update_time == 4096))
+    {
+        value = 0x07;
+    }
+    else
+    {
+        value = 0x02; // default: (num_samples, update_time) = (64, 64)
+    }
+    writeRegister(RECALIBRATION_CONFIG, (org & 0xF8) | value);
+}
+
+/* AUTOMATIC RECALIBRATION
+    Reads CAL_CFG (bits 2:0) of the Recalibration Configuration register
+    (0x2F) into num_samples and update_time.
+*/
+void CAP1203::getAutomaticRecalibNumberOfSamples(uint16_t &num_samples, uint16_t &update_time)
+{
+    uint8_t reg_value = readRegister(RECALIBRATION_CONFIG);
+
+    uint8_t config = reg_value & 0x07; // CAL_CFG, bits 2:0
+
+    switch (config)
+    {
+    case 0x00:
+        num_samples = 16;
+        update_time = 16;
+        break;
+    case 0x01:
+        num_samples = 32;
+        update_time = 32;
+        break;
+    case 0x02:
+        num_samples = 64;
+        update_time = 64;
+        break;
+    case 0x03:
+        num_samples = 128;
+        update_time = 128;
+        break;
+    case 0x04:
+        num_samples = 256;
+        update_time = 256;
+        break;
+    case 0x05:
+        num_samples = 256;
+        update_time = 1024;
+        break;
+    case 0x06:
+        num_samples = 256;
+        update_time = 2048;
+        break;
+    case 0x07:
+        num_samples = 256;
+        update_time = 4096;
+        break;
+    default:
+        num_samples = 64; // Default value
+        update_time = 64; // Default value
+        break;
+    }
+}
+
+/* NEGATIVE DELTA COUNT
+    Sets NEG_DELTA_CNT (bits 4:3) of the Recalibration Configuration
+    register (0x2F): consecutive negative delta counts that trigger a
+    recalibration. Valid values: 8, 16, 32, 0 (none). Others set 16.
+*/
+void CAP1203::setNegativeDeltaCounts(uint8_t counts)
+{
+    uint8_t org = readRegister(RECALIBRATION_CONFIG);
+    uint8_t value;
+    if (counts == 8)
+    {
+        value = 0x00;
+    }
+    else if (counts == 16)
+    {
+        value = 0x08;
+    }
+    else if (counts == 32)
+    {
+        value = 0x10;
+    }
+    else if (counts == 0)
+    {
+        value = 0x18;
+    }
+    else
+    {
+        value = 0x08; // default: 16
+    }
+    writeRegister(RECALIBRATION_CONFIG, (org & 0xE7) | value);
+}
+
+/* NEGATIVE DELTA COUNT
+    Returns NEG_DELTA_CNT of the Recalibration Configuration register
+    (0x2F): 8, 16, 32 or 0 (none).
+*/
+uint8_t CAP1203::getNegativeDeltaCounts()
+{
+    uint8_t reg_value = readRegister(RECALIBRATION_CONFIG);
+
+    uint8_t counts_bits = reg_value & 0x18; // NEG_DELTA_CNT, bits 4:3
+
+    switch (counts_bits)
+    {
+    case 0x00:
+        return 8;
+    case 0x08:
+        return 16;
+    case 0x10:
+        return 32;
+    case 0x18:
+        return 0;
+    default:
+        return 16; // Default value
+    }
+}
+
+/* CYCLE TIME
+    Sets CYCLE_TIME (bits 1:0) of the Averaging and Sampling Configuration
+    register (0x24) in ms. Valid values: 35, 70, 105, 140. Others set 70.
+*/
+void CAP1203::setAveragingCycleTime(uint8_t cycle_time_ms)
+{
+    uint8_t org = readRegister(AVERAGING_AND_SAMPLE_CONFIG);
+    uint8_t value;
+    if (cycle_time_ms == 35)
+    {
+        value = 0x00;
+    }
+    else if (cycle_time_ms == 70)
+    {
+        value = 0x01;
+    }
+    else if (cycle_time_ms == 105)
+    {
+        value = 0x02;
+    }
+    else if (cycle_time_ms == 140)
+    {
+        value = 0x03;
+    }
+    else
+    {
+        value = 0x01; // default: 70msec
+    }
+    writeRegister(AVERAGING_AND_SAMPLE_CONFIG, (org & 0xFC) | value);
+}
+
+/* CYCLE TIME
+    Returns CYCLE_TIME of the Averaging and Sampling Configuration
+    register (0x24) in ms.
+*/
+uint8_t CAP1203::getAveragingCycleTime()
+{
+    uint8_t reg_value = readRegister(AVERAGING_AND_SAMPLE_CONFIG);
+
+    uint8_t cycle_time_bits = reg_value & 0x03; // CYCLE_TIME, bits 1:0
+
+    switch (cycle_time_bits)
+    {
+    case 0x00:
+        return 35;
+    case 0x01:
+        return 70;
+    case 0x02:
+        return 105;
+    case 0x03:
+        return 140;
+    default:
+        return 70; // Default value
+    }
+}
+
+/* SAMPLING TIME
+    Sets SAMP_TIME (bits 3:2) of the Averaging and Sampling Configuration
+    register (0x24) in us. Valid values: 320, 640, 1280, 2560. Others set
+    1280.
+*/
+void CAP1203::setAveragingSamplingTime(uint16_t samp_time_us)
+{
+    uint8_t org = readRegister(AVERAGING_AND_SAMPLE_CONFIG);
+    uint8_t value;
+    if (samp_time_us == 320)
+    {
+        value = 0x00;
+    }
+    else if (samp_time_us == 640)
+    {
+        value = 0x04;
+    }
+    else if (samp_time_us == 1280)
+    {
+        value = 0x08;
+    }
+    else if (samp_time_us == 2560)
+    {
+        value = 0x0C;
+    }
+    else
+    {
+        value = 0x08; // default: 1280us = 1.28msec
+    }
+    writeRegister(AVERAGING_AND_SAMPLE_CONFIG, (org & 0xF3) | value);
+}
+
+/* SAMPLING TIME
+    Returns SAMP_TIME of the Averaging and Sampling Configuration register
+    (0x24) in us.
+*/
+uint16_t CAP1203::getAveragingSamplingTime()
+{
+    uint8_t reg_value = readRegister(AVERAGING_AND_SAMPLE_CONFIG);
+
+    uint8_t sampling_bits = reg_value & 0x0C; // SAMP_TIME, bits 3:2
+
+    switch (sampling_bits)
+    {
+    case 0x00:
+        return 320;
+    case 0x04:
+        return 640;
+    case 0x08:
+        return 1280;
+    case 0x0C:
+        return 2560;
+    default:
+        return 1280; // Default value
+    }
+}
+
+/* AVERAGING
+    Sets AVG (bits 6:4) of the Averaging and Sampling Configuration
+    register (0x24): samples averaged per measurement. Valid values: 1, 2,
+    4, 8, 16, 32, 64, 128. Others set 8.
+*/
+void CAP1203::setAveragingNumberOfSamples(uint8_t num_samples)
+{
+    uint8_t org = readRegister(AVERAGING_AND_SAMPLE_CONFIG);
+    uint8_t value;
+    if (num_samples == 1)
+    {
+        value = 0x00;
+    }
+    else if (num_samples == 2)
+    {
+        value = 0x10;
+    }
+    else if (num_samples == 4)
+    {
+        value = 0x20;
+    }
+    else if (num_samples == 8)
+    {
+        value = 0x30;
+    }
+    else if (num_samples == 16)
+    {
+        value = 0x40;
+    }
+    else if (num_samples == 32)
+    {
+        value = 0x50;
+    }
+    else if (num_samples == 64)
+    {
+        value = 0x60;
+    }
+    else if (num_samples == 128)
+    {
+        value = 0x70;
+    }
+    else
+    {
+        value = 0x30; // default: 8
+    }
+    writeRegister(AVERAGING_AND_SAMPLE_CONFIG, (org & 0x8F) | value);
+}
+
+/* AVERAGING
+    Returns AVG of the Averaging and Sampling Configuration register
+    (0x24): samples averaged per measurement.
+*/
+uint8_t CAP1203::getAveragingNumberOfSamples()
+{
+    uint8_t reg_value = readRegister(AVERAGING_AND_SAMPLE_CONFIG);
+
+    uint8_t num_samples_bits = reg_value & 0x70; // AVG, bits 6:4
+
+    switch (num_samples_bits)
+    {
+    case 0x00:
+        return 1;
+    case 0x10:
+        return 2;
+    case 0x20:
+        return 4;
+    case 0x30:
+        return 8;
+    case 0x40:
+        return 16;
+    case 0x50:
+        return 32;
+    case 0x60:
+        return 64;
+    case 0x70:
+        return 128;
+    default:
+        return 8; // Default value
+    }
 }

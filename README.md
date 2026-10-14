@@ -12,6 +12,20 @@ Repository Contents
 * **/examples** - Example sketches for the library (.ino). Run these from the Arduino IDE.
 * **/src** - Source files for the  library (.cpp, .h).
 
+Advanced Configuration
+----------------------
+Besides touch, swipe and power button detection, the library exposes the CAP1203 tuning registers. See **Example08_AdvancedConfig**.
+
+* **Thresholds** - `setThreshold(pad, value)`, `getThreshold(pad)`, `getDeltaCount(pad)`
+* **Averaging and sampling** - `setAveragingNumberOfSamples()`, `setAveragingSamplingTime()`, `setAveragingCycleTime()` and their getters
+* **Recalibration** - `setAutomaticRecalibNumberOfSamples()`, `setNegativeDeltaCounts()`, `setForceCalibrateEnabled()`, `getCountRegister()`, `getCalibrationRegister()`
+* **Noise filters** - `setDIS_ANA_NOISE()`, `setDIS_RF_NOISE()` and their getters
+* **Multiple touch** - `setMultiTouch()`, `getMultiTouch()`, `isLeftTouched_multi()`, `isMiddleTouched_multi()`, `isRightTouched_multi()`
+* **Repeat rate** - `setRepeatRateEnabled(pad, state)`, `getRepeatRateEnabled(pad)`
+* **All pads at once** - `WhichIsTouched()` returns the raw status (bit 0 = left, bit 1 = middle, bit 2 = right)
+
+`begin()` sets the sensitivity to 16x and no longer forces the interrupt enable bits; call `setSensitivity()` and `setInterruptEnabled()` after `begin()` to get the previous behavior.
+
 Documentation
 --------------
 * **[Product Repository](https://github.com/sparkfun/Qwiic_Capacitive_Touch_Slider_CAP1203)** - Product repository for the SparkFun Capacitive Touch Slider.
